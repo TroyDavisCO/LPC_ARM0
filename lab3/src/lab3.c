@@ -28,6 +28,7 @@ uint32_t startTime;
 uint32_t stopTime;
 uint32_t frequencyHz;
 //hello
+//hello again
 /* GPIO and GPIO Interrupt Initialization */
 void GPIOInit() {
 	//ENABLE SYSCLK FOR GPIO
