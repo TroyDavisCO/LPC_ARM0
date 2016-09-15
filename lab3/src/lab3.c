@@ -21,13 +21,14 @@
 #endif
 #include <cr_section_macros.h>
 #include <stdio.h>
-#define TIME_INTERVAL	(SystemCoreClock/1000 - 1)  //1 ms interval
+#define TIMER_INTERVAL	(SystemCoreClock/1000 - 1)  //1 ms interval
 
 //globals to calculate frequency and duty cycle for LED
 uint32_t timerCount;
 uint32_t startTime;
 uint32_t stopTime;
 uint32_t frequencyHz;
+uint32_t timerCapture;
 
 
 /* GPIO and GPIO Interrupt Initialization */
@@ -55,13 +56,17 @@ void GPIOInit() {
 
 /* TIMER32 and TIMER32 Interrupt Initialization */
 void TIMERInit() {
-	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<10);	//enable clock for timer
-	NVIC_EnableIRQ(TIMER_32_0_IRQn);		//enable interrupt for timer
-	NVIC_SetPriority(TIMER_32_0_IRQn,0);
+
 
 	//set variables for timer
 	timerCount = 0;
-	LPC_TMR32B0->MR0 = TIMER_INTERVAL //for timer handler
+	timerCapture = 0;
+	LPC_TMR32B0->MR0 = TIMER_INTERVAL; //for timer handler
+
+	LPC_TMR32B0->MCR = 3;
+	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<10);	//enable clock for timer
+	NVIC_EnableIRQ(TIMER_32_0_IRQn);		//enable interrupt for timer
+	NVIC_SetPriority(TIMER_32_0_IRQn,0);
 	LPC_TMR32B0->TCR = 1;  // enable timer 0
 }
 
@@ -88,12 +93,15 @@ void PIOINT2_IRQHandler() {
 
 /* TIMER32 Interrupt Handler */
 void TIMER32_0_IRQHandler(){
-	//do something
-	LPC_TMR32B0->IR = 1;				/* clear interrupt flag */
-	timerCount++;
-    if(timer32_0_counter==10000)    // 10 second interrupt
+	 if ( LPC_TMR32B0->IR & 0x01 )
+	  {
+		LPC_TMR32B0->IR = 1;				/* clear interrupt flag */
+		timerCount++;
+	  }
+    if(timerCount>=10000)    // 10 second interrupt
     {
 
+    	//timerCount=0;
     }
 
 }
@@ -102,6 +110,7 @@ int main(void) {
 
 	GPIOInit();		// Initialize GPIO ports for both Interrupts and LED control
 	TIMERInit();	// Initialize Timer and Generate a 1ms interrupt
+
 
 	//do nothing
     while(1);
