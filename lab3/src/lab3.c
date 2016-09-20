@@ -22,6 +22,8 @@
 #include <cr_section_macros.h>
 #include <stdio.h>
 #define TIMER_INTERVAL	(SystemCoreClock/1000 - 1)  //1 ms interval
+#define LED_PORT 0		// Port for led
+#define LED_BIT 7		// Bit on port for led
 #define ON 1
 #define OFF 0
 
@@ -47,30 +49,31 @@ void GPIOInit() {
 	LPC_GPIO2->IS  &= ~(0x1<<1);			//set interrupt sense
 	LPC_GPIO2->IBE &= ~(0x1<<1);			//set edge trigger
 	LPC_GPIO2->IEV |=  (0x1<<1);			//interrupt when high
-	LPC_GPIO2->IE  |=  (0x1<<1);			//enable interrupt for pin2
+	LPC_GPIO2->IE  |=  (0x1<<1);			//enable interrupt for pin1
 
 	//PIN DIRECTION
 	LPC_GPIO2->DIR &= ~(0x1<<1);			//enable GPIO pin2 as input (signal input)
-	LPC_GPIO2->DIR |= (0x1<<7);				//enable GPIO pin7 as output (led)
+	LPC_GPIO[LED_PORT]->DIR |= (0x1<<LED_BIT);	//enable GPIO pin7 as output (led)
 
 	//VARS FOR INPUT SIGNAL FREQ CALC
 	startTime = 0;
 	stopTime = 0;
-	frequencyHz = 0;
+
+	led25Percent = 0;
+	led75Percent = 0;
+	ledTimer = 0;
+	ledStatus = OFF;
 }
 
 
 /* TIMER32 and TIMER32 Interrupt Initialization */
 void TIMERInit() {
-
-
-	//set variables for timer
+		//set variables for timer
 	timerCount = 0;
-	timerCapture = 0;
 	LPC_TMR32B0->MR0 = TIMER_INTERVAL; //for timer handler
 
 	LPC_TMR32B0->MCR = 3;
-	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<10);	//enable clock for timer
+	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<9);	//enable clock for timer
 	NVIC_EnableIRQ(TIMER_32_0_IRQn);		//enable interrupt for timer
 	NVIC_SetPriority(TIMER_32_0_IRQn,0);
 	LPC_TMR32B0->TCR = 1;  // enable timer 0
@@ -80,37 +83,83 @@ void TIMERInit() {
 void PIOINT2_IRQHandler() {
 	//check if interrupt on pin2 has triggered
 	if ( LPC_GPIO2->MIS & (0x1<<1)) {
-		if (startTime == 0){
+		if (startTime == 0) {
 			startTime = timerCount;	//start a new count
+			//LPC_GPIO2->MASKED_ACCESS[(1<<7)] = (ON<<7);
 		}
 		else if (stopTime == 0) {
 			stopTime = timerCount;	//stop count
+			//LPC_GPIO2->MASKED_ACCESS[(1<<7)] = (OFF<<7);
 		}
 		else {
-			uint32_t diff = stopTime - startTime;	//find time diff (increments of 10 ms)
-			frequencyHz = 10000/diff;				//calculate frequency (Hz)
-			stopTime = startTime = 0;
+			uint32_t diff = stopTime - startTime;		//find time diff (increments of 10 ms)
+			led25Percent = diff * 0.25;
+			led75Percent = diff * 0.75;
+			stopTime = startTime = 0;				//reset time for next period calculation
 		}
+		//clear the interrupt
+		LPC_GPIO2->IC |= (0x1<<1);
 	}
-
-	//clear the interrupt
-	LPC_GPIO2->IC |= (0x1<<1);
+	return;
 }
 
 /* TIMER32 Interrupt Handler */
 void TIMER32_0_IRQHandler(){
-	 if ( LPC_TMR32B0->IR & 0x01 )
+	if ( LPC_TMR32B0->IR & 0x01 )
 	  {
 		LPC_TMR32B0->IR = 1;				/* clear interrupt flag */
 		timerCount++;
 	  }
-    if(timerCount>=10000)    // 10 second interrupt
+
+	if(timerCount < 10000)    // before 10 seconds
+	{
+		if (ledStatus == OFF) {
+			if (ledTimer == 0) {
+				ledTimer = led25Percent;
+				//turn on led
+				LPC_GPIO[LED_PORT]->MASKED_ACCESS[(1<<LED_BIT)] = (ON<<LED_BIT);
+			}
+			else {
+				ledTimer--;
+			}
+		}
+		else if (ledStatus == ON) {
+			if (ledTimer == 0) {
+				ledTimer = led25Percent;
+				//turn off led
+				LPC_GPIO[LED_PORT]->MASKED_ACCESS[(1<<LED_BIT)] = (OFF<<LED_BIT);
+			}
+			else {
+				ledTimer--;
+			}
+		}
+	}
+
+    if(timerCount >= 10000)    // after 10 seconds
     {
-
-    	//timerCount=0;
+    	if (ledStatus == OFF) {
+    		if (ledTimer == 0) {
+    			ledTimer = led75Percent;
+    			//turn on led
+    			LPC_GPIO[LED_PORT]->MASKED_ACCESS[(1<<LED_BIT)] = (ON<<LED_BIT);
+    		}
+    		else {
+    			ledTimer--;
+    		}
+    	}
+    	else if (ledStatus == ON) {
+    		if (ledTimer == 0) {
+    			ledTimer = led75Percent;
+    			//turn off led
+    			LPC_GPIO[LED_PORT]->MASKED_ACCESS[(1<<LED_BIT)] = (OFF<<LED_BIT);
+    		}
+    		else {
+    			ledTimer--;
+    		}
+    	}
     }
-
 }
+
 
 int main(void) {
 
