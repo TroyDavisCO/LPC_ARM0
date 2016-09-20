@@ -90,11 +90,11 @@ void PIOINT2_IRQHandler() {
 	if ( LPC_GPIO2->MIS & (0x1<<1)) {
 		if (startTime == 0) {
 			startTime = timerCount;	//start a new count
-			//LPC_GPIO2->MASKED_ACCESS[(1<<7)] = (ON<<7);
+			//LPC_GPIO[LED_PORT]->MASKED_ACCESS[(1<<LED_BIT)] = (ON<<LED_BIT);
 		}
 		else if (stopTime == 0) {
 			stopTime = timerCount;	//stop count
-			//LPC_GPIO2->MASKED_ACCESS[(1<<7)] = (OFF<<7);
+			//LPC_GPIO[LED_PORT]->MASKED_ACCESS[(1<<LED_BIT)] = (OFF<<LED_BIT);
 		}
 		else {
 			uint32_t diff = stopTime - startTime;		//find time diff (increments of 10 ms)
