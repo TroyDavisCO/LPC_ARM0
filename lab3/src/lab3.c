@@ -68,15 +68,20 @@ void GPIOInit() {
 
 /* TIMER32 and TIMER32 Interrupt Initialization */
 void TIMERInit() {
-		//set variables for timer
+	//set variables for timer
 	timerCount = 0;
-	LPC_TMR32B0->MR0 = TIMER_INTERVAL; //for timer handler
-
-	LPC_TMR32B0->MCR = 3;
 	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<9);	//enable clock for timer
+
+	LPC_TMR32B0->MCR = 3;   //match control register 0b11, enables and resets
+	LPC_TMR32B0->MR0 = 10000; //timer value for interrupt, 1 ms interval
+    LPC_TMR32B0->CCR=0; //disable capture
+    LPC_TMR32B0->PR=0; // count every prescale pulse
+    LPC_TMR32B0->PC=0; // initial prescale count
+
 	NVIC_EnableIRQ(TIMER_32_0_IRQn);		//enable interrupt for timer
 	NVIC_SetPriority(TIMER_32_0_IRQn,0);
-	LPC_TMR32B0->TCR = 1;  // enable timer 0
+	LPC_TMR32B0->TCR = 2;
+	LPC_TMR32B0->TCR = 1;  // enable timers
 }
 
 /* GPIO Interrupt Handler */
