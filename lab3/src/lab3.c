@@ -171,9 +171,10 @@ int main(void) {
 	GPIOInit();		// Initialize GPIO ports for both Interrupts and LED control
 	TIMERInit();	// Initialize Timer and Generate a 1ms interrupt
 
-
-	//do nothing
-    while(1);
+	/* Do nothing - Go to sleep to save power between interrupts */
+	while(1){
+		__WFI();
+	}
 
     return 0;
 }
