@@ -22,13 +22,18 @@
 #include <cr_section_macros.h>
 #include <stdio.h>
 #define TIMER_INTERVAL	(SystemCoreClock/1000 - 1)  //1 ms interval
+#define ON 1
+#define OFF 0
 
-//globals to calculate frequency and duty cycle for LED
+//globals to calculate frequency and duty cycle for LED sdf
 uint32_t timerCount;
 uint32_t startTime;
 uint32_t stopTime;
-uint32_t frequencyHz;
-uint32_t timerCapture;
+
+uint32_t ledTimer;
+uint32_t led25Percent;
+uint32_t led75Percent;
+uint8_t ledStatus;
 
 
 /* GPIO and GPIO Interrupt Initialization */
@@ -53,6 +58,7 @@ void GPIOInit() {
 	stopTime = 0;
 	frequencyHz = 0;
 }
+
 
 /* TIMER32 and TIMER32 Interrupt Initialization */
 void TIMERInit() {
