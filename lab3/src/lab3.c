@@ -73,7 +73,7 @@ void TIMERInit() {
 	LPC_SYSCON->SYSAHBCLKCTRL |= (1<<9);	//enable clock for timer
 
 	LPC_TMR32B0->MCR = 3;   //match control register 0b11, enables and resets
-	LPC_TMR32B0->MR0 = 10000; //timer value for interrupt, 1 ms interval
+	LPC_TMR32B0->MR0 = TIMER_INTERVAL; //timer value for interrupt, 1 ms interval
     LPC_TMR32B0->CCR=0; //disable capture
     LPC_TMR32B0->PR=0; // count every prescale pulse
     LPC_TMR32B0->PC=0; // initial prescale count
@@ -116,7 +116,7 @@ void TIMER32_0_IRQHandler(){
 		timerCount++;
 	  }
 
-	if(timerCount < 10000)    // before 10 seconds
+	if(timerCount < (TIMER_INTERVAL*10000))    // before 10 seconds
 	{
 		if (ledStatus == OFF) {
 			if (ledTimer == 0) {
@@ -140,7 +140,7 @@ void TIMER32_0_IRQHandler(){
 		}
 	}
 
-    if(timerCount >= 10000)    // after 10 seconds
+    if(timerCount >= (TIMER_INTERVAL*10000))    // after 10 seconds
     {
     	if (ledStatus == OFF) {
     		if (ledTimer == 0) {
@@ -173,7 +173,6 @@ int main(void) {
 
 	/* Do nothing - Go to sleep to save power between interrupts */
 	while(1){
-		__WFI();
 	}
 
     return 0;
